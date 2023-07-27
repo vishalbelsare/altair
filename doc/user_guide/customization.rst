@@ -121,6 +121,85 @@ Global configurations should be reserved for creating themes that are applied
 just before the chart is rendered.
 
 
+Adjusting the Title
+-------------------
+By default an Altair chart does not have a title, as seen in this example.
+
+.. altair-plot::
+
+   import altair as alt
+   from vega_datasets import data
+   
+   iowa = data.iowa_electricity.url
+   
+   alt.Chart(iowa).mark_area().encode(
+       x="year:T",
+       y=alt.Y("net_generation:Q").stack("normalize"),
+       color="source:N"
+   )
+
+You can add a simple title by passing the `title` keyword argument with the data.
+
+.. altair-plot::
+
+   alt.Chart(iowa, title="Iowa's green energy boom").mark_area().encode(
+       x="year:T",
+       y=alt.Y("net_generation:Q").stack("normalize"),
+       color="source:N"
+   )
+
+It is also possible to add a subtitle by passing in an `alt.Title` object.
+
+.. altair-plot::
+
+   alt.Chart(
+      iowa,
+      title=alt.Title(
+          "Iowa's green energy boom",
+          subtitle="A growing share of the state's energy has come from renewable sources"
+      )
+   ).mark_area().encode(
+       x="year:T",
+       y=alt.Y("net_generation:Q").stack("normalize"),
+       color="source:N"
+   )
+
+The subtitle can run to two lines by passing a list where each list item is a line (if you don't want to create this list manually as in the example below, you can use the ``wrap`` function from the `textwrap library <https://docs.python.org/3/library/textwrap.html>`_ to split a string into a list of substrings of a certain length).
+
+.. altair-plot::
+
+   alt.Chart(
+      iowa,
+      title=alt.Title(
+          "Iowa's green energy boom",
+          subtitle=["A growing share of the state's energy", "has come from renewable sources"]
+      )
+   ).mark_area().encode(
+       x="year:T",
+       y=alt.Y("net_generation:Q").stack("normalize"),
+       color="source:N"
+   )
+
+The ``Title`` object can also configure a number of other attributes, e.g., the position of the title and subtitle (see see :ref:`user-guide-customization` for details).
+
+.. altair-plot::
+
+   alt.Chart(
+      iowa,
+      title=alt.Title(
+          "Iowa's green energy boom",
+          subtitle=["A growing share of the state's energy", "has come from renewable sources"],
+          anchor='start',
+          orient='bottom',
+          offset=20
+      )
+   ).mark_area().encode(
+       x="year:T",
+       y=alt.Y("net_generation:Q").stack("normalize"),
+       color="source:N"
+   )
+
+
 Adjusting Axis Limits
 ---------------------
 The default axis limit used by Altair is dependent on the type of the data.
@@ -147,9 +226,7 @@ in quantitative axes; if you would like to turn this off, you can add a
 .. altair-plot::
 
     alt.Chart(cars).mark_point().encode(
-        alt.X('Acceleration:Q',
-            scale=alt.Scale(zero=False)
-        ),
+        alt.X('Acceleration:Q').scale(zero=False),
         y='Horsepower:Q'
     )
 
@@ -158,9 +235,7 @@ To specify exact axis limits, you can use the ``domain`` property of the scale:
 .. altair-plot::
 
     alt.Chart(cars).mark_point().encode(
-        alt.X('Acceleration:Q',
-            scale=alt.Scale(domain=(5, 20))
-        ),
+        alt.X('Acceleration:Q').scale(domain=(5, 20)),
         y='Horsepower:Q'
     )
 
@@ -171,9 +246,7 @@ the ``"clip"`` property of the mark to True:
 .. altair-plot::
 
     alt.Chart(cars).mark_point(clip=True).encode(
-        alt.X('Acceleration:Q',
-            scale=alt.Scale(domain=(5, 20))
-        ),
+        alt.X('Acceleration:Q').scale(domain=(5, 20)),
         y='Horsepower:Q'
     )
 
@@ -183,12 +256,7 @@ limit to the edge of the domain:
 .. altair-plot::
 
     alt.Chart(cars).mark_point().encode(
-        alt.X('Acceleration:Q',
-            scale=alt.Scale(
-                domain=(5, 20),
-                clamp=True
-            )
-        ),
+        alt.X('Acceleration:Q').scale(domain=(5, 20), clamp=True),
         y='Horsepower:Q'
     ).interactive()
 
@@ -222,8 +290,8 @@ the y labels as a dollar value:
 .. altair-plot::
 
    alt.Chart(df).mark_circle().encode(
-       x=alt.X('x', axis=alt.Axis(format='%', title='percentage')),
-       y=alt.Y('y', axis=alt.Axis(format='$', title='dollar amount'))
+       alt.X('x').axis(format='%').title('percentage'),
+       alt.Y('y').axis(format='$').title('dollar amount')
    )
 
 Axis labels can also be easily removed:
@@ -231,8 +299,8 @@ Axis labels can also be easily removed:
 .. altair-plot::
 
    alt.Chart(df).mark_circle().encode(
-       x=alt.X('x', axis=alt.Axis(labels=False)),
-       y=alt.Y('y', axis=alt.Axis(labels=False))
+       alt.X('x').axis(labels=False),
+       alt.Y('y').axis(labels=False)
    )
 
 Additional formatting codes are available; for a listing of these see the
@@ -271,7 +339,7 @@ The legend option on all of them expects a :class:`Legend` object as its input, 
   alt.Chart(iris).mark_point().encode(
       x='petalWidth',
       y='petalLength',
-      color=alt.Color('species', legend=alt.Legend(title="Species by color"))
+      color=alt.Color('species').title("Species by color")
   )
 
 Another thing you can do is move the legend to another position with the `orient` argument.
@@ -286,7 +354,7 @@ Another thing you can do is move the legend to another position with the `orient
   alt.Chart(iris).mark_point().encode(
       x='petalWidth',
       y='petalLength',
-      color=alt.Color('species', legend=alt.Legend(orient="left")),
+      color=alt.Color('species').legend(orient="left")
   )
 
 You can remove the legend entirely by submitting a null value.
@@ -301,7 +369,7 @@ You can remove the legend entirely by submitting a null value.
   alt.Chart(iris).mark_point().encode(
       x='petalWidth',
       y='petalLength',
-      color=alt.Color('species', legend=None),
+      color=alt.Color('species').legend(None),
   )
 
 Removing the Chart Border
@@ -342,8 +410,8 @@ First remove the grid using the :meth:`Chart.configure_axis` method.
     )
 
 You'll note that while the inside rules are gone, the outside border remains.
-Hide it by setting the `strokeWidth` or the `strokeOpacity` options on
-:meth:`Chart.configure_view` to `0`:
+Hide it by setting ``stroke=None`` inside :meth:`Chart.configure_view`
+(``strokeWidth=0`` and ``strokeOpacity=0`` also works):
 
 .. altair-plot::
 
@@ -359,12 +427,12 @@ Hide it by setting the `strokeWidth` or the `strokeOpacity` options on
     ).configure_axis(
         grid=False
     ).configure_view(
-        strokeWidth=0
+        stroke=None
     )
 
 
 It is also possible to completely remove all borders and axes by
-combining the above option with setting `axis` to `None` during encoding.
+combining the above option with setting ``axis`` to ``None`` during encoding.
 
 .. altair-plot::
 
@@ -374,13 +442,13 @@ combining the above option with setting `axis` to `None` during encoding.
     iris = data.iris()
 
     alt.Chart(iris).mark_point().encode(
-        alt.X('petalWidth', axis=None),
-        alt.Y('petalLength', axis=None),
+        alt.X('petalWidth').axis(None),
+        alt.Y('petalLength').axis(None),
         color='species'
     ).configure_axis(
         grid=False
     ).configure_view(
-        strokeWidth=0
+        stroke=None
     )
 
 
@@ -412,7 +480,7 @@ can be passed to the `scheme` argument of the :class:`Scale` class:
   alt.Chart(iris).mark_point().encode(
       x='petalWidth',
       y='petalLength',
-      color=alt.Color('species', scale=alt.Scale(scheme='dark2'))
+      color=alt.Color('species').scale(scheme='dark2')
   )
 
 Color Domain and Range
@@ -434,7 +502,7 @@ values and colors respectively.
   alt.Chart(iris).mark_point().encode(
       x='petalWidth',
       y='petalLength',
-      color=alt.Color('species', scale=alt.Scale(domain=domain, range=range_))
+      color=alt.Color('species').scale(domain=domain, range=range_)
   )
 
 Raw Color Values
@@ -458,10 +526,10 @@ you can set ``scale=None`` to use those colors directly:
       size=100
   ).encode(
       x='x',
-      color=alt.Color('color', scale=None)
+      color=alt.Color('color').scale(None)
   )
 
-Adjusting the width of Bar Marks
+Adjusting the Width of Bar Marks
 --------------------------------
 The width of the bars in a bar plot are controlled through the ``size`` property in the :meth:`~Chart.mark_bar()`:
 
@@ -553,15 +621,158 @@ If you want your chart size to respond to the width of the HTML page or containe
 it is rendererd, you can set ``width`` or ``height`` to the string ``"container"``:
 
 .. altair-plot::
+    :div_class_: full-width-plot
 
-   alt.Chart(cars).mark_bar().encode(
-       x='Origin',
-       y='count()',
-   ).properties(
-       width='container',
-       height=200
-   )
+    alt.Chart(cars).mark_bar().encode(
+        x='Origin',
+        y='count()',
+    ).properties(
+        width='container',
+        height=200
+    )
 
 Note that this will only scale with the container if its parent element has a size determined
 outside the chart itself; For example, the container may be a ``<div>`` element that has style
 ``width: 100%; height: 300px``. 
+
+
+.. _chart-themes:
+
+Chart Themes
+------------
+Altair makes available a theme registry that lets users apply chart configurations
+globally within any Python session. This is done via the ``alt.themes`` object.
+
+The themes registry consists of functions which define a specification dictionary
+that will be added to every created chart.
+For example, the default theme configures the default size of a single chart:
+
+    >>> import altair as alt
+    >>> default = alt.themes.get()
+    >>> default()
+    {'config': {'view': {'continuousWidth': 300, 'continuousHeight': 300}}}
+
+You can see that any chart you create will have this theme applied, and these configurations
+added to its specification:
+
+.. altair-plot::
+    :output: repr
+
+    import altair as alt
+    from vega_datasets import data
+
+    chart = alt.Chart(data.cars.url).mark_point().encode(
+        x='Horsepower:Q',
+        y='Miles_per_Gallon:Q'
+    )
+
+    chart.to_dict()
+
+The rendered chart will then reflect these configurations:
+
+.. altair-plot::
+
+    chart
+
+Changing the Theme
+~~~~~~~~~~~~~~~~~~
+If you would like to enable any other theme for the length of your Python session,
+you can call ``alt.themes.enable(theme_name)``.
+For example, Altair includes a theme in which the chart background is opaque
+rather than transparent:
+
+.. altair-plot::
+    :output: repr
+
+    alt.themes.enable('opaque')
+    chart.to_dict()
+
+.. altair-plot::
+
+    chart
+
+Notice that the background color of the chart is now set to white.
+If you would like no theme applied to your chart, you can use the
+theme named ``'none'``:
+
+.. altair-plot::
+    :output: repr
+
+    alt.themes.enable('none')
+    chart.to_dict()
+
+.. altair-plot::
+
+    chart
+
+Because the view configuration is not set, the chart is smaller
+than the default rendering.
+
+If you would like to use any theme just for a single chart, you can use the
+``with`` statement to enable a temporary theme:
+
+.. altair-plot::
+   :output: none
+
+   with alt.themes.enable('default'):
+       spec = chart.to_json()
+
+Currently Altair does not offer many built-in themes, but we plan to add
+more options in the future.
+
+Defining a Custom Theme
+~~~~~~~~~~~~~~~~~~~~~~~
+The theme registry also allows defining and registering custom themes.
+A theme is simply a function that returns a dictionary of default values
+to be added to the chart specification at rendering time, which is then
+registered and activated.
+
+For example, here we define a theme in which all marks are drawn with black
+fill unless otherwise specified:
+
+.. altair-plot::
+
+    import altair as alt
+    from vega_datasets import data
+
+    # define the theme by returning the dictionary of configurations
+    def black_marks():
+        return {
+            'config': {
+                'view': {
+                    'height': 300,
+                    'width': 300,
+                },
+                'mark': {
+                    'color': 'black',
+                    'fill': 'black'
+                }
+            }
+        }
+
+    # register the custom theme under a chosen name
+    alt.themes.register('black_marks', black_marks)
+
+    # enable the newly registered theme
+    alt.themes.enable('black_marks')
+
+    # draw the chart
+    cars = data.cars.url
+    alt.Chart(cars).mark_point().encode(
+        x='Horsepower:Q',
+        y='Miles_per_Gallon:Q'
+    )
+
+
+If you want to restore the default theme, use:
+
+.. altair-plot::
+   :output: none
+
+   alt.themes.enable('default')
+
+
+For more ideas on themes, see the `Vega Themes`_ repository.
+
+
+.. _Vega Themes: https://github.com/vega/vega-themes/

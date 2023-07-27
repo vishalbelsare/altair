@@ -1,4 +1,6 @@
 import json
+from typing import Optional, Dict
+
 import jinja2
 
 
@@ -10,8 +12,14 @@ HTML_TEMPLATE = jinja2.Template(
 <head>
 {%- endif %}
   <style>
-    .error {
-        color: red;
+    #{{ output_div }}.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #{{ output_div }}.vega-embed details,
+    #{{ output_div }}.vega-embed details summary {
+      position: relative;
     }
   </style>
 {%- if not requirejs %}
@@ -60,7 +68,7 @@ requirejs.config({
       var embedOpt = {{ embed_options }};
 
       function showError(el, error){
-          el.innerHTML = ('<div class="error" style="color:red;">'
+          el.innerHTML = ('<div style="color:red;">'
                           + '<p>JavaScript Error: ' + error.message + '</p>'
                           + "<p>This usually means there's a typo in your chart specification. "
                           + "See the javascript console for the full traceback.</p>"
@@ -83,6 +91,17 @@ requirejs.config({
 
 HTML_TEMPLATE_UNIVERSAL = jinja2.Template(
     """
+<style>
+  #{{ output_div }}.vega-embed {
+    width: 100%;
+    display: flex;
+  }
+
+  #{{ output_div }}.vega-embed details,
+  #{{ output_div }}.vega-embed details summary {
+    position: relative;
+  }
+</style>
 <div id="{{ output_div }}"></div>
 <script type="text/javascript">
   var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
@@ -141,26 +160,70 @@ HTML_TEMPLATE_UNIVERSAL = jinja2.Template(
 )
 
 
-TEMPLATES = {
+# This is like the HTML_TEMPLATE template, but includes vega javascript inline
+# so that the resulting file is not dependent on external resources. This was
+# ported over from altair_saver.
+#
+# implies requirejs=False and full_html=True
+INLINE_HTML_TEMPLATE = jinja2.Template(
+    """\
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #{{ output_div }}.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #{{ output_div }}.vega-embed details,
+    #{{ output_div }}.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript">
+    // vega.js v{{ vega_version }}
+    {{ vega_script }}
+    // vega-lite.js v{{ vegalite_version }}
+    {{ vegalite_script }}
+    // vega-embed.js v{{ vegaembed_version }}
+    {{ vegaembed_script }}
+  </script>
+</head>
+<body>
+<div class="vega-visualization" id="{{ output_div }}"></div>
+<script type="text/javascript">
+  const spec = {{ spec }};
+  const embedOpt = {{ embed_options }};
+  vegaEmbed('#{{ output_div }}', spec, embedOpt).catch(console.error);
+</script>
+</body>
+</html>
+"""
+)
+
+
+TEMPLATES: Dict[str, jinja2.Template] = {
     "standard": HTML_TEMPLATE,
     "universal": HTML_TEMPLATE_UNIVERSAL,
+    "inline": INLINE_HTML_TEMPLATE,
 }
 
 
 def spec_to_html(
-    spec,
-    mode,
-    vega_version,
-    vegaembed_version,
-    vegalite_version=None,
-    base_url="https://cdn.jsdelivr.net/npm/",
-    output_div="vis",
-    embed_options=None,
-    json_kwds=None,
-    fullhtml=True,
-    requirejs=False,
-    template="standard",
-):
+    spec: dict,
+    mode: str,
+    vega_version: str,
+    vegaembed_version: str,
+    vegalite_version: Optional[str] = None,
+    base_url: str = "https://cdn.jsdelivr.net/npm",
+    output_div: str = "vis",
+    embed_options: Optional[dict] = None,
+    json_kwds: Optional[dict] = None,
+    fullhtml: bool = True,
+    requirejs: bool = False,
+    template: str = "standard",
+) -> str:
     """Embed a Vega/Vega-Lite spec into an HTML page
 
     Parameters
@@ -218,11 +281,27 @@ def spec_to_html(
     if mode == "vega-lite" and vegalite_version is None:
         raise ValueError("must specify vega-lite version for mode='vega-lite'")
 
-    template = TEMPLATES.get(template, template)
-    if not hasattr(template, "render"):
-        raise ValueError("Invalid template: {0}".format(template))
+    render_kwargs = {}
+    if template == "inline":
+        try:
+            from altair_viewer import get_bundled_script
+        except ImportError as err:
+            raise ImportError(
+                "The altair_viewer package is required to convert to HTML with inline=True"
+            ) from err
+        render_kwargs["vega_script"] = get_bundled_script("vega", vega_version)
+        render_kwargs["vegalite_script"] = get_bundled_script(
+            "vega-lite", vegalite_version
+        )
+        render_kwargs["vegaembed_script"] = get_bundled_script(
+            "vega-embed", vegaembed_version
+        )
 
-    return template.render(
+    jinja_template = TEMPLATES.get(template, template)
+    if not hasattr(jinja_template, "render"):
+        raise ValueError("Invalid template: {0}".format(jinja_template))
+
+    return jinja_template.render(
         spec=json.dumps(spec, **json_kwds),
         embed_options=json.dumps(embed_options),
         mode=mode,
@@ -233,4 +312,5 @@ def spec_to_html(
         output_div=output_div,
         fullhtml=fullhtml,
         requirejs=requirejs,
+        **render_kwargs,
     )

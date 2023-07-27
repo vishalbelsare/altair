@@ -2,8 +2,8 @@
 
 .. _user-guide-lookup-transform:
 
-Lookup Transform
-~~~~~~~~~~~~~~~~
+Lookup
+~~~~~~
 The Lookup transform extends a primary data source by looking up values from
 another data source; it is similar to a one-sided join. A lookup can be added
 at the top level of a chart using the :meth:`Chart.transform_lookup` method.
@@ -27,8 +27,8 @@ We know how to visualize each of these datasets separately; for example:
     import altair as alt
 
     top = alt.Chart(people).mark_square(size=200).encode(
-        x=alt.X('age:Q', scale=alt.Scale(zero=False)),
-        y=alt.Y('height:Q', scale=alt.Scale(zero=False)),
+        x=alt.X('age:Q').scale(zero=False),
+        y=alt.Y('height:Q').scale(zero=False),
         color='name:N',
         tooltip='name:N'
     ).properties(
